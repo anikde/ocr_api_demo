@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Image OCR</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0px 0px 15px 0px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    input[type="file"] {
+      display: none;
+    }
+    .custom-file-upload {
+      border: 2px solid #3498db;
+      color: #3498db;
+      background-color: transparent;
+      padding: 10px 20px;
+      text-align: center;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    .custom-file-upload:hover {
+      background-color: #3498db;
+      color: #fff;
+    }
+    #uploadedImage {
+      display: none;
+      max-width: 100%;
+      margin-top: 20px;
+      border-radius: 4px;
+      box-shadow: 0px 0px 5px 0px rgba(0,0,0,0.2);
+    }
+    /* Dynamic font-size for the response text area */
+    #textContent {
+      margin-top: 20px;
+      padding: 10px;
+      font-size: 32px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      resize: vertical;
+      transition: font-size 0.2s; /* Smooth transition */
+    }
+
+    #loadingMessage {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      color: #777;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #27ae60;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #219f56;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Image OCR</h1>
+  <label for="imageInput" class="custom-file-upload">Select Image</label>
+  <input type="file" id="imageInput" accept="image/*" onchange="displayImage(event)">
+  <img id="uploadedImage" src="#" alt="Uploaded Image">
+  <form id="uploadForm">
+    <button type="button" onclick="uploadImage()">Submit</button>
+  </form>
+  <textarea id="textContent" rows="6" readonly></textarea>
+  
+  <div id="loadingMessage">Fetching...</div>
+</div>
+
+<script>
+  function displayImage(event) {
+    const file = event.target.files[0];
+    const uploadedImage = document.getElementById('uploadedImage');
+
+    if (file) {
+      uploadedImage.src = URL.createObjectURL(file);
+      uploadedImage.style.display = 'block';
+    }
+  }
+
+  function uploadImage() {
+    const formData = new FormData();
+    const fileInput = document.getElementById('imageInput');
+    const uploadedImage = document.getElementById('uploadedImage');
+    const textContent = document.getElementById('textContent');
+    const loadingMessage = document.getElementById('loadingMessage');
+
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      formData.append('images', file, file.name);
+      formData.append('language', 'hi');
+      formData.append('modality', 'printed');
+      formData.append('version', 'v2');
+
+      loadingMessage.style.display = 'block';
+
+      fetch('https://ilocr.iiit.ac.in/ocr/test', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok.');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data && Array.isArray(data) && data.length > 0 && data[0].text) {
+            textContent.value = data[0].text;
+
+            // Adjust font size based on the number of characters
+            const fontSize = Math.min(24, 300 / Math.sqrt(data[0].text.length)) + 'px';
+            textContent.style.fontSize = fontSize;
+
+
+          } else {
+            textContent.value = 'Text not found in the response.';
+          }
+          loadingMessage.style.display = 'none';
+        })
+        .catch(error => {
+          textContent.value = 'Error: ' + error.message;
+          loadingMessage.style.display = 'none';
+        });
+    } else {
+      textContent.value = 'Please select an image.';
+      uploadedImage.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>

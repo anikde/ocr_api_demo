@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>API Request with Image and Form Data</title>
+</head>
+<body>
+
+<form id="uploadForm">
+  <input type="file" id="imageInput" accept="image/*" onchange="displayImage(event)">
+  <button type="button" onclick="uploadImage()">Submit</button>
+</form>
+
+<img id="uploadedImage" src="#" alt="Uploaded Image" style="display: none; max-width: 300px; margin-top: 20px;">
+<input type="text" id="textContent" style="margin-top: 10px;" readonly>
+
+<script>
+  function displayImage(event) {
+    const file = event.target.files[0];
+    const uploadedImage = document.getElementById('uploadedImage');
+
+    if (file) {
+      uploadedImage.src = URL.createObjectURL(file);
+      uploadedImage.style.display = 'block';
+    }
+  }
+
+  function uploadImage() {
+    const formData = new FormData();
+    const fileInput = document.getElementById('imageInput');
+    const uploadedImage = document.getElementById('uploadedImage');
+
+    if (fileInput.files.length > 0) {
+      const file = fileInput.files[0];
+      formData.append('images', file, file.name);
+      formData.append('language', 'hi');
+      formData.append('modality', 'printed');
+      formData.append('version', 'v2');
+
+      fetch('https://ilocr.iiit.ac.in/ocr/test', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Accept': 'application/json'
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok.');
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Handle the JSON response here and display 'text' field in the text box
+          const textContent = document.getElementById('textContent');
+          if (data && Array.isArray(data) && data.length > 0 && data[0].text) {
+            textContent.value = data[0].text;
+          } else {
+            textContent.value = 'Text not found in the response.';
+          }
+        })
+        .catch(error => {
+          const textContent = document.getElementById('textContent');
+          textContent.value = 'Error: ' + error.message;
+        });
+    } else {
+      const textContent = document.getElementById('textContent');
+      textContent.value = 'Please select an image.';
+      uploadedImage.style.display = 'none';
+    }
+  }
+</script>
+
+</body>
+</html>
